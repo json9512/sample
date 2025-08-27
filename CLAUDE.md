@@ -193,3 +193,12 @@ This cycle ensures:
 3. **Message Limits**: Follow Claude API constraints
 4. **File Attachments**: Not supported (text-only conversations)
 5. **Collaboration**: Single-user conversations only
+
+
+## Agent Coordination Strategy
+
+Information Flow:
+1. Each agent provides research deliverables before implementation begins
+2. Research informs interface design and test strategy
+3. Implementation follows the mandatory development cycle using agent findings
+4. Agents can be re-deployed for deeper research if edge cases emerge
