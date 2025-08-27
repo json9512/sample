@@ -162,12 +162,29 @@ NEXTAUTH_URL=http://localhost:3000
 }
 ```
 
+## Development Cycle (MANDATORY)
+
+Follow this strict development cycle for all features:
+
+1. **Interface Specification**: Always define clear TypeScript interfaces first
+2. **Unit Tests**: Implement minimal working unit tests that validate the interface contract (for idempotency)
+3. **Implementation**: Write function details that satisfy the interface specification
+4. **Rigorous Testing**: Thoroughly test the feature before proceeding to next step
+
+This cycle ensures:
+- Interface compliance and type safety
+- Idempotent operations through testing
+- Quality assurance before progression
+- Maintainable and reliable code
+
 ## Development Commands
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run lint` - Run ESLint
 - `npm run type-check` - TypeScript checking
+- `npm run test` - Run unit tests
+- `npm run test:watch` - Run tests in watch mode
 
 ## Technical Constraints
 
