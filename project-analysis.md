@@ -73,51 +73,52 @@ interface StreamingChunk {
 }
 ```
 
-## Implementation Plan
+## Implementation Plan - REVISED
 
 ### Phase 1: Foundation Setup
 - Initialize Next.js project with TypeScript and Tailwind
-- Set up Supabase project with authentication
-- Configure Google OAuth provider
+- Set up Supabase project with Google OAuth authentication
 - Create database schema (users, conversations, messages)
+- Configure environment variables for Claude API
 
-### Phase 2: Authentication & User Management
-- Implement Google OAuth login/logout
+### Phase 2: Authentication System
+- Implement Google OAuth login/logout with Supabase
 - Create protected routes and middleware
 - Set up user session management
-- Build basic user profile interface
+- Build basic authentication UI (login/logout buttons)
 
-### Phase 3: Chat Interface
-- Build responsive chat UI components
-- Implement message input/display system
-- Add conversation sidebar/navigation
-- Create new conversation functionality
+### Phase 3: Core Chat Interface
+- Build responsive chat UI with message bubbles
+- Implement message input field with send functionality
+- Create conversation sidebar with chat history
+- Add new conversation functionality
 
-### Phase 4: AI Integration & Streaming
-- Set up AI provider API integration
-- Implement streaming API routes using Next.js streaming
-- Build real-time message rendering
-- Add response cancellation and error handling
+### Phase 4: Claude API Integration
+- Set up Anthropic Claude API client
+- Implement streaming chat API endpoint (/api/chat)
+- Build real-time message rendering with streaming
+- Add proper error handling for API failures
 
-### Phase 5: Chat History & Data Persistence
+### Phase 5: Data Persistence
 - Implement conversation CRUD operations
 - Build message storage and retrieval system
-- Add conversation search/filtering
-- Optimize database queries and indexing
+- Add conversation title generation
+- Create conversation deletion functionality
 
-### Phase 6: Polish & Optimization
-- Add loading states and error boundaries
-- Implement rate limiting and security measures
-- Optimize performance (caching, pagination)
-- Add responsive design improvements
+### Phase 6: Polish & UX Improvements
+- Add loading states and typing indicators
+- Implement error boundaries and user feedback
+- Optimize performance (message pagination, caching)
+- Add responsive design for mobile devices
+- Basic conversation search/filtering
 
-## Technical Decisions Required
+## Technical Decisions - FINALIZED
 
-1. **AI Provider**: OpenAI API, Anthropic Claude, or local model?
-2. **Rate Limiting**: Request limits per user/session
-3. **Message Limits**: Max conversation length, token limits
-4. **File Attachments**: Support for images/documents?
-5. **Real-time Features**: Multiple users per conversation?
+1. **AI Provider**: Anthropic Claude API
+2. **Rate Limiting**: No custom rate limiting (rely on API vendor limits)
+3. **Message Limits**: Follow Claude API vendor limits
+4. **File Attachments**: Not supported (text-only conversations)
+5. **Real-time Features**: Single user conversations only (no collaboration)
 
 ## Database Schema
 
