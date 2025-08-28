@@ -2,7 +2,7 @@
 // Implements the data access layer for messages
 
 // @ts-nocheck - Temporary suppression of strict type checking for error results
-import { supabaseClient, getSupabaseServer, DatabaseResult, createResult } from '@/lib/supabase'
+import { supabaseClient, DatabaseResult, createResult } from '@/lib/supabase'
 import type { Message } from '@/types/chat'
 
 export interface CreateMessageData {
@@ -210,97 +210,3 @@ export class MessageService {
   }
 }
 
-// Server-side operations (for API routes)
-export class MessageServerService {
-  
-  /**
-   * Create message server-side with user validation
-   */
-  static async createMessage(data: CreateMessageData, userId: string): Promise<DatabaseResult<Message>> {
-    try {
-      const supabase = getSupabaseServer()
-      
-      // Verify user owns the conversation
-      const { data: conversation, error: convError } = await supabase
-        .from('conversations')
-        .select('user_id')
-        .eq('id', data.conversation_id)
-        .single()
-
-      if (convError || conversation?.user_id !== userId) {
-        return createResult<Message>(null, { 
-          code: 'UNAUTHORIZED', 
-          message: 'Access denied to this conversation' 
-        })
-      }
-
-      const { data: message, error } = await supabase
-        .from('messages')
-        .insert(data)
-        .select()
-        .single()
-
-      if (error) {
-        return createResult(null, error)
-      }
-
-      return createResult(message)
-    } catch (error) {
-      return createResult<Message>(null, { code: 'CREATE_ERROR', message: 'Failed to create message' })
-    }
-  }
-
-  /**
-   * Get messages for a conversation with user validation
-   */
-  static async getConversationMessages(
-    conversationId: string, 
-    userId: string, 
-    options: MessageQueryOptions = {}
-  ): Promise<DatabaseResult<Message[]>> {
-    try {
-      const supabase = getSupabaseServer()
-      
-      // Verify user owns the conversation
-      const { data: conversation, error: convError } = await supabase
-        .from('conversations')
-        .select('user_id')
-        .eq('id', conversationId)
-        .single()
-
-      if (convError || conversation?.user_id !== userId) {
-        return createResult<Message[]>(null, { 
-          code: 'UNAUTHORIZED', 
-          message: 'Access denied to this conversation' 
-        })
-      }
-
-      const { 
-        limit = 100, 
-        offset = 0, 
-        orderBy = 'created_at', 
-        ascending = true 
-      } = options
-
-      let query = supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order(orderBy, { ascending })
-
-      if (limit > 0) {
-        query = query.range(offset, offset + limit - 1)
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        return createResult(null, error)
-      }
-
-      return createResult(data || [])
-    } catch (error) {
-      return createResult<Message[]>(null, { code: 'FETCH_ERROR', message: 'Failed to fetch messages' })
-    }
-  }
-}

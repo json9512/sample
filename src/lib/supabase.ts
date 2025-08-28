@@ -2,7 +2,6 @@
 // Provides type-safe database operations
 
 import { createClient } from '@/utils/supabase/client'
-import { createClient as createServerClient } from '@/utils/supabase/server'
 import type { User, Conversation, Message } from '@/types/chat'
 
 // Database types for Supabase
@@ -31,8 +30,7 @@ export interface Database {
 // Client-side Supabase client
 export const supabaseClient = createClient()
 
-// Server-side Supabase client factory
-export const getSupabaseServer = () => createServerClient()
+// Note: Server-side Supabase client removed for client-side build compatibility
 
 // Error handling utility
 export interface DatabaseError {

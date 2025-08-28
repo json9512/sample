@@ -2,7 +2,7 @@
 // Implements the data access layer for conversations
 
 // @ts-nocheck - Temporary suppression of strict type checking for error results
-import { supabaseClient, getSupabaseServer, DatabaseResult, createResult, isDatabaseError } from '@/lib/supabase'
+import { supabaseClient, DatabaseResult, createResult } from '@/lib/supabase'
 import type { Conversation } from '@/types/chat'
 
 export interface CreateConversationData {
@@ -69,6 +69,9 @@ export class ConversationService {
         return createResult(null, { code: 'AUTH_ERROR', message: 'User not authenticated' })
       }
 
+      // Ensure user exists in public.users table
+      await this.ensureUserExists(user)
+
       const conversationData = {
         title: data.title,
         user_id: data.user_id || user.id
@@ -87,6 +90,38 @@ export class ConversationService {
       return createResult(conversation)
     } catch (error) {
       return createResult(null, { code: 'CREATE_ERROR', message: 'Failed to create conversation' })
+    }
+  }
+
+  /**
+   * Ensure user exists in public.users table
+   */
+  private static async ensureUserExists(user: any) {
+    try {
+      // Check if user exists
+      const { data: existingUser, error: selectError } = await supabaseClient
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single()
+
+      if (selectError && selectError.code === 'PGRST116') {
+        // User doesn't exist, create them
+        const { error: insertError } = await supabaseClient
+          .from('users')
+          .insert({
+            id: user.id,
+            email: user.email || '',
+            name: user.user_metadata?.name || user.email || 'Anonymous',
+            avatar_url: user.user_metadata?.avatar_url || null
+          })
+
+        if (insertError) {
+          console.error('Error creating user in public.users:', insertError)
+        }
+      }
+    } catch (error) {
+      console.error('Error ensuring user exists:', error)
     }
   }
 
@@ -146,52 +181,3 @@ export class ConversationService {
   }
 }
 
-// Server-side operations (for API routes)
-export class ConversationServerService {
-  
-  /**
-   * Get conversations for a specific user (server-side)
-   */
-  static async getUserConversations(userId: string): Promise<DatabaseResult<Conversation[]>> {
-    try {
-      const supabase = getSupabaseServer()
-      
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
-
-      if (error) {
-        return createResult(null, error)
-      }
-
-      return createResult(data || [])
-    } catch (error) {
-      return createResult(null, { code: 'FETCH_ERROR', message: 'Failed to fetch conversations' })
-    }
-  }
-
-  /**
-   * Create conversation server-side
-   */
-  static async createConversation(data: CreateConversationData & { user_id: string }): Promise<DatabaseResult<Conversation>> {
-    try {
-      const supabase = getSupabaseServer()
-      
-      const { data: conversation, error } = await supabase
-        .from('conversations')
-        .insert(data)
-        .select()
-        .single()
-
-      if (error) {
-        return createResult(null, error)
-      }
-
-      return createResult(conversation)
-    } catch (error) {
-      return createResult(null, { code: 'CREATE_ERROR', message: 'Failed to create conversation' })
-    }
-  }
-}
