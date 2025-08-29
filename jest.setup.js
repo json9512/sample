@@ -1,5 +1,14 @@
 import '@testing-library/jest-dom'
 
+// Mock cn utility globally
+jest.mock('@/lib/utils', () => {
+  const actual = jest.requireActual('@/lib/utils')
+  return {
+    ...actual,
+    cn: jest.fn((...classes) => classes.filter(Boolean).join(' ')),
+  }
+})
+
 // Mock environment variables
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test-project.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
@@ -69,6 +78,19 @@ Object.defineProperty(global, 'crypto', {
     },
   },
 })
+
+// Mock lucide-react icons globally
+const React = require('react')
+jest.mock('lucide-react', () => ({
+  MessageSquare: (props) => React.createElement('div', { ...props, 'data-testid': 'message-square-icon' }, 'MessageSquare'),
+  Send: (props) => React.createElement('div', { ...props, 'data-testid': 'send-icon' }, 'Send'),
+  Square: (props) => React.createElement('div', { ...props, 'data-testid': 'square-icon' }, 'Square'),
+  Search: (props) => React.createElement('div', { ...props, 'data-testid': 'search-icon' }, 'Search'),
+  X: (props) => React.createElement('div', { ...props, 'data-testid': 'x-icon' }, 'X'),
+  Plus: (props) => React.createElement('div', { ...props, 'data-testid': 'plus-icon' }, 'Plus'),
+  MoreVertical: (props) => React.createElement('div', { ...props, 'data-testid': 'more-vertical-icon' }, 'MoreVertical'),
+  Trash2: (props) => React.createElement('div', { ...props, 'data-testid': 'trash2-icon' }, 'Trash2'),
+}))
 
 // Suppress console warnings in tests
 global.console.warn = jest.fn()

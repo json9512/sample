@@ -2,15 +2,15 @@
 // Centralized exports for all database functionality
 
 // Core functionality
-export { supabaseClient, getSupabaseServer, isDatabaseError, createResult } from '../supabase'
+export { supabaseClient, isDatabaseError, createResult } from '../supabase'
 export type { Database, DatabaseError, DatabaseResult } from '../supabase'
 
 // Conversations
-export { ConversationService, ConversationServerService } from './conversations'
+export { ConversationService } from './conversations'
 export type { CreateConversationData, UpdateConversationData } from './conversations'
 
 // Messages
-export { MessageService, MessageServerService } from './messages'
+export { MessageService } from './messages'
 export type { CreateMessageData, UpdateMessageData, MessageQueryOptions } from './messages'
 
 // Real-time subscriptions

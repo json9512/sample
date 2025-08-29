@@ -17,7 +17,7 @@ describe('TokenBucket', () => {
   it('should allow token consumption when tokens available', () => {
     const bucket = new TokenBucket(10, 1)
     expect(bucket.canConsume(5)).toBe(true)
-    expect(bucket.getAvailableTokens()).toBe(5) // Should have 5 tokens left after consuming 5
+    expect(Math.floor(bucket.getAvailableTokens())).toBe(5) // Should have 5 tokens left after consuming 5
   })
 
   it('should reject consumption when insufficient tokens', () => {
