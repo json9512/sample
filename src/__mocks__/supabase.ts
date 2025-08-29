@@ -6,20 +6,20 @@ export const createMockSupabaseClient = () => ({
     getSession: jest.fn().mockResolvedValue({
       data: { session: null },
       error: null,
-    }),
+    } as any),
     onAuthStateChange: jest.fn().mockImplementation(() => ({
       data: {
         subscription: {
           unsubscribe: jest.fn(),
         },
       },
-    })),
-    signOut: jest.fn().mockResolvedValue({ error: null }),
+    })) as any,
+    signOut: jest.fn().mockResolvedValue({ error: null } as any),
     signInWithOAuth: jest.fn().mockResolvedValue({
       data: { url: 'https://oauth-url.com' },
       error: null,
-    }),
-    exchangeCodeForSession: jest.fn().mockResolvedValue({ error: null }),
+    } as any),
+    exchangeCodeForSession: jest.fn().mockResolvedValue({ error: null } as any),
   },
   from: jest.fn().mockReturnThis(),
   select: jest.fn().mockReturnThis(),
