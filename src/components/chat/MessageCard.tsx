@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, memo } from 'react'
 import { cn } from '@/lib/utils'
 import { formatMessageTime } from '@/lib/utils'
 
@@ -10,7 +10,7 @@ interface MessageCardProps {
   name?: string
 }
 
-export function MessageCard({ 
+export const MessageCard = memo(function MessageCard({ 
   role, 
   children, 
   timestamp, 
@@ -57,4 +57,4 @@ export function MessageCard({
       </div>
     </div>
   )
-}
+})

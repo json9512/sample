@@ -34,12 +34,34 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
   const abortControllerRef = useRef<AbortController | null>(null)
   const retryCountRef = useRef(0)
   const maxRetries = options.maxRetries || 3
+  const pendingContentRef = useRef('')
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Throttled update function to reduce re-renders during streaming
+  const throttledUpdate = useCallback((content: string, immediate = false) => {
+    pendingContentRef.current = content
+    
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current)
+    }
+    
+    if (immediate) {
+      setState(prev => ({ ...prev, streamingContent: content }))
+    } else {
+      updateTimeoutRef.current = setTimeout(() => {
+        setState(prev => ({ ...prev, streamingContent: pendingContentRef.current }))
+      }, 50) // Update every 50ms max
+    }
+  }, [])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
+      }
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current)
       }
     }
   }, [])
@@ -157,13 +179,17 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
                   
                 case 'token':
                   fullContent += data.content
-                  setState(prev => ({ ...prev, streamingContent: fullContent }))
+                  throttledUpdate(fullContent)
                   break
                   
                 case 'complete':
+                  // Clear any pending throttled updates and set final content
+                  if (updateTimeoutRef.current) {
+                    clearTimeout(updateTimeoutRef.current)
+                  }
                   setState(prev => ({ 
                     ...prev, 
-                    streamingContent: fullContent,
+                    streamingContent: data.content || fullContent,
                     isStreaming: false 
                   }))
                   
@@ -241,7 +267,7 @@ export function useStreamingChat(options: UseStreamingChatOptions = {}) {
       abortControllerRef.current = null
       retryCountRef.current = 0
     }
-  }, [state.isStreaming, options, maxRetries, resetState])
+  }, [state.isStreaming, options, maxRetries, resetState, throttledUpdate])
 
   const stopStreaming = useCallback(() => {
     if (abortControllerRef.current) {

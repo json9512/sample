@@ -4,16 +4,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useStreamingChat } from '@/hooks/useStreamingChat'
 import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation'
-import { MessageCard } from './MessageCard'
+import { usePaginatedMessages } from '@/hooks/usePaginatedMessages'
+import { VirtualMessageList } from './VirtualMessageList'
 import { MessageInput } from './MessageInput'
-import { TypingIndicator } from './TypingIndicator'
-import { StreamingMessage } from './StreamingMessage'
 import { ConversationSidebar } from './ConversationSidebar'
 import { generateConversationTitle } from '@/lib/utils'
 import type { Conversation, Message } from '@/types/chat'
 import { 
   getConversations, 
-  getConversationMessages, 
   createConversation, 
   deleteConversation,
   addMessage
@@ -23,11 +21,19 @@ export function ChatInterface() {
   const { user } = useAuth()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
   const [isLoadingConversations, setIsLoadingConversations] = useState(true)
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Use paginated messages hook
+  const { 
+    messages, 
+    isLoading: isLoadingMessages, 
+    addMessage: addMessageToState 
+  } = usePaginatedMessages({ 
+    conversationId: activeConversationId,
+    pageSize: 50,
+    initialLoad: 100
+  })
 
   const {
     sendMessage,
@@ -57,8 +63,8 @@ export function ChatInterface() {
           content
         })
 
-        setMessages(prev => [...prev, assistantMessage])
-        scrollToBottom()
+        // Add message to state without reloading
+        addMessageToState(assistantMessage)
       } catch (error) {
         console.error('Failed to save assistant message:', error)
       }
@@ -67,14 +73,6 @@ export function ChatInterface() {
       console.error('Streaming error:', errorMessage)
     }
   })
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages, streamingContent])
 
   useEffect(() => {
     if (!user) return
@@ -98,30 +96,8 @@ export function ChatInterface() {
     loadConversations()
   }, [user, activeConversationId])
 
-  useEffect(() => {
-    if (!activeConversationId) {
-      setMessages([])
-      return
-    }
-
-    const loadMessages = async () => {
-      try {
-        setIsLoadingMessages(true)
-        const conversationMessages = await getConversationMessages(activeConversationId)
-        setMessages(conversationMessages)
-      } catch (error) {
-        console.error('Failed to load messages:', error)
-      } finally {
-        setIsLoadingMessages(false)
-      }
-    }
-
-    loadMessages()
-  }, [activeConversationId])
-
   const handleNewConversation = () => {
     setActiveConversationId(null)
-    setMessages([])
     clearError()
   }
 
@@ -143,7 +119,6 @@ export function ChatInterface() {
           setActiveConversationId(remaining[0].id)
         } else {
           setActiveConversationId(null)
-          setMessages([])
         }
       }
     } catch (error) {
@@ -171,10 +146,12 @@ export function ChatInterface() {
         content
       })
 
-      setMessages(prev => [...prev, userMessage])
+      // Add user message to state without reloading
+      addMessageToState(userMessage)
 
-      const conversationMessages = await getConversationMessages(conversationId)
-      await sendMessage(content, conversationId || undefined, conversationMessages.map((msg: Message) => ({
+      // Use current messages plus the new user message for context
+      const allMessages = [...messages, userMessage]
+      await sendMessage(content, conversationId || undefined, allMessages.map((msg: Message) => ({
         role: msg.role,
         content: msg.content
       })))
@@ -206,65 +183,16 @@ export function ChatInterface() {
       />
       
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          <div className="max-w-4xl mx-auto space-y-4 py-4">
-            {isLoadingMessages ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-2xl">💬</span>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  Start a new conversation
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 max-w-md">
-                  Ask me anything! I&apos;m here to help with questions, creative writing, analysis, coding, and more.
-                </p>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <MessageCard
-                  key={message.id}
-                  role={message.role}
-                  timestamp={message.created_at}
-                  avatar={message.role === 'user' ? user.user_metadata?.avatar_url : undefined}
-                  name={message.role === 'user' ? user.user_metadata?.name : undefined}
-                >
-                  {message.content}
-                </MessageCard>
-              ))
-            )}
-            
-            {isStreaming && streamingContent && (
-              <MessageCard role="assistant">
-                <StreamingMessage content={streamingContent} />
-              </MessageCard>
-            )}
-            
-            {isStreaming && !streamingContent && (
-              <TypingIndicator />
-            )}
-            
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <p className="text-red-600 dark:text-red-400 text-sm">
-                  {error}
-                </p>
-                <button
-                  onClick={clearError}
-                  className="mt-2 text-xs text-red-600 dark:text-red-400 hover:underline"
-                >
-                  Dismiss
-                </button>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
+        <VirtualMessageList
+          messages={messages}
+          isLoading={isLoadingMessages}
+          streamingContent={streamingContent}
+          isStreaming={isStreaming}
+          error={error}
+          onClearError={clearError}
+          userAvatar={user?.user_metadata?.avatar_url}
+          userName={user?.user_metadata?.name}
+        />
         
         <MessageInput
           ref={inputRef}
