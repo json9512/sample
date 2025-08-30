@@ -83,22 +83,35 @@ export const VirtualMessageList = memo(function VirtualMessageList({
             <MessageCard
               key={message.id}
               role={message.role}
+              content={message.content}
               timestamp={message.created_at}
               avatar={message.role === 'user' ? userAvatar : undefined}
               name={message.role === 'user' ? userName : undefined}
-            >
-              {message.content}
-            </MessageCard>
+            />
           ))}
           
           {/* Streaming message */}
           {isStreaming && streamingContent && (
-            <MessageCard role="assistant">
-              <StreamingMessage 
-                content={streamingContent}
-                isComplete={!isStreaming}
-              />
-            </MessageCard>
+            <div className="flex w-full gap-4 p-4 transition-colors">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-green-600 text-white">
+                  <span>A</span>
+                </div>
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                    Assistant
+                  </span>
+                </div>
+                
+                <StreamingMessage 
+                  content={streamingContent}
+                  isComplete={!isStreaming}
+                />
+              </div>
+            </div>
           )}
           
           {/* Typing indicator */}

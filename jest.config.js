@@ -38,6 +38,9 @@ const customJestConfig = {
     '<rootDir>/node_modules/',
     '<rootDir>/e2e/',
   ],
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-markdown|rehype-highlight|unified|unist|hast|mdast|micromark)/)',
+  ],
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

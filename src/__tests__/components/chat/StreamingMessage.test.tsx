@@ -4,13 +4,21 @@ import { StreamingMessage } from '@/components/chat/StreamingMessage'
 
 // @/lib/utils is already mocked globally in jest.setup.js
 
+// Mock MarkdownContent component
+jest.mock('@/components/chat/MarkdownContent', () => ({
+  MarkdownContent: ({ content }: { content: string }) => (
+    <div data-testid="markdown-content">{content}</div>
+  ),
+}))
+
 describe('StreamingMessage', () => {
   it('renders component without crashing', () => {
     const { container } = render(<StreamingMessage content="Hello world" />)
     
     // Component should render successfully
     expect(container.querySelector('.relative')).toBeInTheDocument()
-    expect(container.querySelector('.prose')).toBeInTheDocument()
+    expect(screen.getByTestId('markdown-content')).toBeInTheDocument()
+    expect(screen.getByTestId('markdown-content')).toHaveTextContent('Hello world')
   })
 
   it('displays streaming cursor when not complete', () => {

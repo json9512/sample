@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
+import { MarkdownContent } from './MarkdownContent'
 
 interface StreamingMessageProps {
   content: string
@@ -14,8 +15,8 @@ export const StreamingMessage = memo(function StreamingMessage({
 }: StreamingMessageProps) {
   return (
     <div className={cn('relative', className)}>
-      <div className="prose prose-neutral dark:prose-invert max-w-none">
-        <span>{content}</span>
+      <div className="relative">
+        <MarkdownContent content={content} />
         {!isComplete && (
           <span className="inline-block w-2 h-5 bg-blue-500 animate-pulse ml-1" />
         )}

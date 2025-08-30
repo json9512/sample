@@ -1,10 +1,11 @@
 import { ReactNode, memo } from 'react'
 import { cn } from '@/lib/utils'
 import { formatMessageTime } from '@/lib/utils'
+import { MarkdownContent } from './MarkdownContent'
 
 interface MessageCardProps {
   role: 'user' | 'assistant'
-  children: ReactNode
+  content: string
   timestamp?: string
   avatar?: string
   name?: string
@@ -12,7 +13,7 @@ interface MessageCardProps {
 
 export const MessageCard = memo(function MessageCard({ 
   role, 
-  children, 
+  content, 
   timestamp, 
   avatar, 
   name 
@@ -51,9 +52,7 @@ export const MessageCard = memo(function MessageCard({
           )}
         </div>
         
-        <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none">
-          {children}
-        </div>
+        <MarkdownContent content={content} />
       </div>
     </div>
   )
