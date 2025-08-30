@@ -1,4 +1,18 @@
 import { describe, it, expect } from '@jest/globals'
+import { renderHook } from '@testing-library/react'
+import { useRouter } from 'next/navigation'
+import { useProtectedRoute } from '@/hooks/useProtectedRoute'
+import { useAuth } from '@/contexts/AuthContext'
+
+// Mock next/navigation
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(),
+}))
+
+// Mock AuthContext  
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: jest.fn(),
+}))
 
 // Test the useProtectedRoute hook logic without complex mocking
 describe('useProtectedRoute Logic', () => {
@@ -134,6 +148,76 @@ describe('useProtectedRoute Logic', () => {
       // Test if dependencies changed (simplified comparison)
       const depsChanged = JSON.stringify(scenario.deps1) !== JSON.stringify(scenario.deps2)
       expect(depsChanged).toBe(scenario.shouldTrigger)
+    })
+  })
+})
+
+describe('useProtectedRoute Hook Implementation', () => {
+  const mockPush = jest.fn()
+  const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>
+  const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockUseRouter.mockReturnValue({
+      push: mockPush,
+    } as any)
+  })
+
+  it('should redirect to login when user is not authenticated', () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signOut: jest.fn(),
+    })
+
+    renderHook(() => useProtectedRoute())
+
+    expect(mockPush).toHaveBeenCalledWith('/login')
+  })
+
+  it('should not redirect when user is authenticated', () => {
+    const mockUser = { id: '1', email: 'test@example.com', name: 'Test User', created_at: '2024-01-01' }
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      loading: false,
+      signOut: jest.fn(),
+    })
+
+    const { result } = renderHook(() => useProtectedRoute())
+
+    expect(mockPush).not.toHaveBeenCalled()
+    expect(result.current.user).toBe(mockUser)
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('should not redirect when still loading', () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: true,
+      signOut: jest.fn(),
+    })
+
+    const { result } = renderHook(() => useProtectedRoute())
+
+    expect(mockPush).not.toHaveBeenCalled()
+    expect(result.current.user).toBe(null)
+    expect(result.current.loading).toBe(true)
+  })
+
+  it('should return user and loading state', () => {
+    const mockUser = { id: '1', email: 'test@example.com', name: 'Test', created_at: '2024-01-01' }
+    mockUseAuth.mockReturnValue({
+      user: mockUser,
+      loading: false,
+      signOut: jest.fn(),
+    })
+
+    const { result } = renderHook(() => useProtectedRoute())
+
+    expect(result.current).toEqual({
+      user: mockUser,
+      loading: false,
     })
   })
 })
