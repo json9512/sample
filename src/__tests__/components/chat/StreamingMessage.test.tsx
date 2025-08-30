@@ -1,5 +1,5 @@
 import React from 'react'
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { StreamingMessage } from '@/components/chat/StreamingMessage'
 
 // @/lib/utils is already mocked globally in jest.setup.js
@@ -13,11 +13,24 @@ describe('StreamingMessage', () => {
     expect(container.querySelector('.prose')).toBeInTheDocument()
   })
 
-  it('displays streaming cursor initially', () => {
-    render(<StreamingMessage content="Hello world" />)
+  it('displays streaming cursor when not complete', () => {
+    render(<StreamingMessage content="Hello world" isComplete={false} />)
     
     const cursor = document.querySelector('.animate-pulse')
     expect(cursor).toBeInTheDocument()
+  })
+
+  it('hides streaming cursor when complete', () => {
+    render(<StreamingMessage content="Hello world" isComplete={true} />)
+    
+    const cursor = document.querySelector('.animate-pulse')
+    expect(cursor).not.toBeInTheDocument()
+  })
+
+  it('displays content text', () => {
+    render(<StreamingMessage content="Test message content" />)
+    
+    expect(screen.getByText('Test message content')).toBeInTheDocument()
   })
 
   it('handles empty content gracefully', () => {
@@ -38,11 +51,33 @@ describe('StreamingMessage', () => {
     expect(container.querySelector('.custom-class')).toBeInTheDocument()
   })
 
-  it('renders with onStreamComplete callback', () => {
-    const onComplete = jest.fn()
-    const { container } = render(<StreamingMessage content="Test" onStreamComplete={onComplete} />)
+  it('uses default props when not provided', () => {
+    render(<StreamingMessage content="Test" />)
     
-    // Component renders successfully
-    expect(container.querySelector('.relative')).toBeInTheDocument()
+    // Should show cursor by default (isComplete defaults to false)
+    const cursor = document.querySelector('.animate-pulse')
+    expect(cursor).toBeInTheDocument()
+    
+    // Should not have custom class (className defaults to empty)
+    const container = document.querySelector('.relative')
+    expect(container).not.toHaveClass('custom-class')
+  })
+
+  it('renders different content lengths correctly', () => {
+    const shortContent = 'Hi'
+    const longContent = 'This is a much longer message that should still render correctly in the streaming message component.'
+    
+    const { rerender } = render(<StreamingMessage content={shortContent} />)
+    expect(screen.getByText(shortContent)).toBeInTheDocument()
+    
+    rerender(<StreamingMessage content={longContent} />)
+    expect(screen.getByText(longContent)).toBeInTheDocument()
+  })
+
+  it('handles special characters in content', () => {
+    const specialContent = 'Hello! @#$%^&*()_+{}|:"<>?[]\\;\',./'
+    render(<StreamingMessage content={specialContent} />)
+    
+    expect(screen.getByText(specialContent)).toBeInTheDocument()
   })
 })
