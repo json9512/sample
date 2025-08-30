@@ -76,9 +76,9 @@ describe('Supabase Server Client Utils', () => {
         url: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://default.supabase.co',
         key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'default-key',
         cookiesConfig: {
-          get: expect.any(Function),
-          set: expect.any(Function),
-          remove: expect.any(Function),
+          get: () => {},
+          set: () => {},
+          remove: () => {},
         },
       }
 
