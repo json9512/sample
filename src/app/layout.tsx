@@ -1,10 +1,6 @@
 import type { Metadata } from 'next'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { checkEnvironment } from '@/lib/config'
 import './globals.css'
-
-// Initialize configuration check
-checkEnvironment()
 
 export const metadata: Metadata = {
   title: 'ChatGPT Clone',

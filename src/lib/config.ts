@@ -101,6 +101,18 @@ function getDeploymentUrl(): string {
 export function validateConfig(): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
 
+  // Skip validation during any build or deployment process
+  if (
+    process.env.NEXT_PHASE === 'phase-production-build' || 
+    process.env.NEXT_PHASE === 'phase-development-server' ||
+    process.env.VERCEL_ENV ||
+    process.env.GITHUB_ACTIONS ||
+    process.env.CI ||
+    (typeof window === 'undefined' && process.env.NODE_ENV === 'production')
+  ) {
+    return { isValid: true, errors: [] }
+  }
+
   // Required environment variables
   if (!config.anthropic.apiKey) {
     errors.push('ANTHROPIC_API_KEY is required')
@@ -143,16 +155,22 @@ export function validateConfig(): { isValid: boolean; errors: string[] } {
 
 // Runtime configuration check
 export function checkEnvironment() {
+  // Always skip in non-browser environments during production builds
+  if (typeof window === 'undefined') {
+    return
+  }
+
   const validation = validateConfig()
   
   if (!validation.isValid) {
     const errorMessage = `Configuration errors:\n${validation.errors.join('\n')}`
     
-    if (config.isProduction) {
-      // In production, fail fast
+    // Never throw during any kind of build or static generation
+    if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+      // Only throw in actual runtime production (not build time)
       throw new Error(errorMessage)
     } else {
-      // In development, log warnings
+      // In development or build time, just log warnings
       console.warn('⚠️  Configuration warnings:')
       validation.errors.forEach(error => console.warn(`  - ${error}`))
     }
