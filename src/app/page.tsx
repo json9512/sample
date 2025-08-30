@@ -30,15 +30,15 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col">
-      <header className="border-b bg-white dark:bg-gray-900 px-4 py-3 z-10">
+    <main className="flex h-screen flex-col">
+      <header className="border-b bg-white dark:bg-gray-900 px-4 py-3 z-10 flex-shrink-0">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">ChatGPT Clone</h1>
           <UserMenu />
         </div>
       </header>
       
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <ChatErrorBoundary>
           <ChatInterface />
         </ChatErrorBoundary>

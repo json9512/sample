@@ -180,7 +180,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900">
+    <div className="flex h-full bg-white dark:bg-gray-900">
       <ConversationSidebar
         conversations={conversations}
         activeConversationId={activeConversationId || undefined}
@@ -190,7 +190,7 @@ export function ChatInterface() {
         isLoading={isLoadingConversations}
       />
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <VirtualMessageList
           messages={messages}
           isLoading={isLoadingMessages}
