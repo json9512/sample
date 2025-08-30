@@ -6,10 +6,20 @@ export default function LoginButton() {
   const supabase = createClient()
 
   const handleGoogleLogin = async () => {
+    // Get the redirect URL, prioritizing environment variables for production
+    const getRedirectUrl = () => {
+      if (typeof window !== 'undefined') {
+        return `${window.location.origin}/auth/callback`
+      }
+      return process.env.NEXTAUTH_URL 
+        ? `${process.env.NEXTAUTH_URL}/auth/callback`
+        : 'http://localhost:3000/auth/callback'
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getRedirectUrl(),
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
