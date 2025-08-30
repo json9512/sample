@@ -22,6 +22,7 @@ export function ChatInterface() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [isLoadingConversations, setIsLoadingConversations] = useState(true)
+  const [isNewConversationMode, setIsNewConversationMode] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Use paginated messages hook
@@ -54,6 +55,7 @@ export function ChatInterface() {
           const newConversation = await createConversation(user.id, title)
           currentConversationId = newConversation.id
           setActiveConversationId(currentConversationId)
+          setIsNewConversationMode(false) // Exit new conversation mode after creating conversation
           setConversations(prev => [newConversation, ...prev])
         }
 
@@ -83,7 +85,8 @@ export function ChatInterface() {
         const userConversations = await getConversations(user.id)
         setConversations(userConversations)
         
-        if (userConversations.length > 0 && !activeConversationId) {
+        // Only auto-select first conversation on initial load, not when user explicitly starts new conversation
+        if (userConversations.length > 0 && !activeConversationId && !isNewConversationMode) {
           setActiveConversationId(userConversations[0].id)
         }
       } catch (error) {
@@ -94,16 +97,20 @@ export function ChatInterface() {
     }
 
     loadConversations()
-  }, [user, activeConversationId])
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Intentionally excluding activeConversationId and isNewConversationMode to prevent auto-selecting 
+  // first conversation when user explicitly starts new conversation
 
   const handleNewConversation = () => {
     setActiveConversationId(null)
+    setIsNewConversationMode(true)
     clearError()
   }
 
   const handleSelectConversation = (conversationId: string) => {
     if (conversationId !== activeConversationId) {
       setActiveConversationId(conversationId)
+      setIsNewConversationMode(false) // Exit new conversation mode when selecting existing conversation
       clearError()
     }
   }
@@ -137,6 +144,7 @@ export function ChatInterface() {
         const newConversation = await createConversation(user.id, title)
         conversationId = newConversation.id
         setActiveConversationId(conversationId)
+        setIsNewConversationMode(false) // Exit new conversation mode after creating conversation
         setConversations(prev => [newConversation, ...prev])
       }
 
