@@ -18,6 +18,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(f
   onStopStreaming
 }, ref) {
   const [message, setMessage] = useState('')
+  const [isComposing, setIsComposing] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   
   // Combine external ref with internal ref
@@ -54,10 +55,18 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(f
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
       e.preventDefault()
       handleSubmit(e)
     }
+  }
+
+  const handleCompositionStart = () => {
+    setIsComposing(true)
+  }
+
+  const handleCompositionEnd = () => {
+    setIsComposing(false)
   }
 
   return (
@@ -80,6 +89,8 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(f
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
               placeholder={placeholder}
               disabled={disabled}
               rows={1}
