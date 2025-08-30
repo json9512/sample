@@ -5,11 +5,13 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useStreamingChat } from '@/hooks/useStreamingChat'
 import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation'
 import { usePaginatedMessages } from '@/hooks/usePaginatedMessages'
+import { useMobileSidebar } from '@/hooks/useMobileSidebar'
 import { VirtualMessageList } from './VirtualMessageList'
 import { MessageInput } from './MessageInput'
 import { ConversationSidebar } from './ConversationSidebar'
 import { generateConversationTitle } from '@/lib/utils'
 import type { Conversation, Message } from '@/types/chat'
+import { Menu, Plus } from 'lucide-react'
 import { 
   getConversations, 
   createConversation, 
@@ -24,6 +26,9 @@ export function ChatInterface() {
   const [isLoadingConversations, setIsLoadingConversations] = useState(true)
   const [isNewConversationMode, setIsNewConversationMode] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  
+  // Mobile sidebar state
+  const { isMobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useMobileSidebar()
 
   // Use paginated messages hook
   const { 
@@ -179,6 +184,8 @@ export function ChatInterface() {
     return null
   }
 
+  const activeConversation = conversations.find(conv => conv.id === activeConversationId)
+
   return (
     <div className="flex h-full bg-white dark:bg-gray-900">
       <ConversationSidebar
@@ -188,9 +195,37 @@ export function ChatInterface() {
         onNewConversation={handleNewConversation}
         onDeleteConversation={handleDeleteConversation}
         isLoading={isLoadingConversations}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onCloseMobileMenu={closeMobileMenu}
       />
       
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile header */}
+        <header className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <button
+            onClick={toggleMobileMenu}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Toggle conversation list"
+            aria-expanded={isMobileMenuOpen}
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          
+          <div className="flex-1 text-center px-4">
+            <h2 className="font-medium text-gray-900 dark:text-gray-100 truncate leading-relaxed">
+              {activeConversation?.title || (isNewConversationMode ? "New Conversation" : "ChatGPT Clone")}
+            </h2>
+          </div>
+          
+          <button
+            onClick={handleNewConversation}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="New conversation"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </header>
+
         <VirtualMessageList
           messages={messages}
           isLoading={isLoadingMessages}
