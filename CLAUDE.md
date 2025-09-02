@@ -33,6 +33,24 @@ Once implemented, the project will likely follow Next.js conventions:
 - Supabase client configuration
 - Authentication setup with Google OAuth
 
+## Development Process
+
+**CRITICAL: Always follow this TDD-based development process for all implementations:**
+
+1. **Interface Definition**: Define clear TypeScript interfaces that specify requirements
+2. **Unit Test Creation**: Write comprehensive unit tests using the interfaces as specification
+3. **Test Validation**: Ensure tests are idempotent and properly validate the expected behavior
+4. **Implementation**: Write code that passes all unit tests
+5. **Test Execution**: Run tests rigorously to verify implementation correctness
+
+**Testing Framework**: Use Jest and React Testing Library for all unit tests. Every function, component, and API endpoint must have corresponding tests before implementation.
+
+**Key Principles**:
+- Tests must be written BEFORE implementation code
+- All tests must pass before code is considered complete
+- Maintain idempotency in all tests
+- Use interfaces as the single source of truth for requirements
+
 ## Branch Information
 
 - Main development branch: `main` (Do not refer to this branch)
