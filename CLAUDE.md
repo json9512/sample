@@ -51,6 +51,33 @@ Once implemented, the project will likely follow Next.js conventions:
 - Maintain idempotency in all tests
 - Use interfaces as the single source of truth for requirements
 
+## Subagent Collaboration Workflow
+
+**Available Specialized Agents:**
+- `database-architect`: Supabase schema design, RLS policies, performance optimization
+- `api-developer`: Next.js API Routes, Claude API integration, authentication
+- `frontend-architect`: React components, Zustand state management, responsive design
+- `streaming-specialist`: Server-Sent Events, real-time data streaming, connection management
+- `test-engineer`: Jest/RTL testing, TDD implementation, CI/CD test pipelines
+
+**Collaboration Sequence:**
+1. `database-architect`: Schema design → Test creation
+2. `api-developer`: API design → Test creation  
+3. `frontend-architect`: Component design → Test creation
+4. `streaming-specialist`: Real-time features → Test creation
+5. `test-engineer`: Integration testing & E2E tests
+
+**Agent Dependencies:**
+```
+database-architect → api-developer
+database-architect → frontend-architect
+api-developer → streaming-specialist
+frontend-architect → streaming-specialist
+test-engineer → all other agents
+```
+
+Each agent MUST follow the TDD process and provide stable interfaces for subsequent agents to build upon.
+
 ## Branch Information
 
 - Main development branch: `main` (Do not refer to this branch)
