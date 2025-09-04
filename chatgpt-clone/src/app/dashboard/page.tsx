@@ -12,6 +12,7 @@ function DashboardPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [streamingMessage, setStreamingMessage] = useState('')
   const [chatService] = useState(() => new ChatService())
   const router = useRouter()
 
@@ -41,56 +42,129 @@ function DashboardPage() {
   }
 
   const handleNewSession = async () => {
+    console.log('Creating new session...')
     const newSession = await chatService.createSession('New Chat')
+    console.log('New session result:', newSession)
     if (newSession) {
       setSessions(prev => [newSession, ...prev])
       setCurrentSession(newSession)
       setMessages([])
+      console.log('New session set as current session')
+    } else {
+      console.error('Failed to create new session')
     }
   }
 
   const handleSendMessage = async (content: string) => {
-    if (!currentSession) {
-      // Create a new session if none exists
-      await handleNewSession()
-      return
+    console.log('handleSendMessage called with:', content)
+    
+    let sessionToUse = currentSession
+    
+    if (!sessionToUse) {
+      console.log('No current session, using temporary session for testing')
+      // Temporary fix: create a fake session for testing
+      const tempSession: ChatSession = {
+        id: 'temp-session-' + Date.now(),
+        title: 'Test Chat',
+        user_id: 'test-user',
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+      setCurrentSession(tempSession)
+      sessionToUse = tempSession
+      console.log('Created temporary session with id:', sessionToUse.id)
     }
 
     setIsLoading(true)
+    setStreamingMessage('')
 
     try {
-      // Add user message
-      const userMessage = await chatService.addMessage(currentSession.id, content, 'user')
-      if (userMessage) {
-        setMessages(prev => [...prev, userMessage])
-        
-        // Update session title if it's still "New Chat"
-        if (currentSession.title === 'New Chat') {
-          const newTitle = content.slice(0, 50) + (content.length > 50 ? '...' : '')
-          await chatService.updateSessionTitle(currentSession.id, newTitle)
-          setCurrentSession(prev => prev ? { ...prev, title: newTitle } : null)
-          setSessions(prev => prev.map(s => 
-            s.id === currentSession.id ? { ...s, title: newTitle } : s
-          ))
-        }
+      // Add user message to UI immediately
+      const tempUserMessage: Message = {
+        id: `temp-${Date.now()}`,
+        content,
+        role: 'user',
+        timestamp: new Date(),
+        session_id: sessionToUse.id,
+        user_id: 'temp'
+      }
+      setMessages(prev => [...prev, tempUserMessage])
+      
+      // Update session title if it's still "New Chat" or "Test Chat"
+      if (sessionToUse.title === 'New Chat' || sessionToUse.title === 'Test Chat') {
+        const newTitle = content.slice(0, 50) + (content.length > 50 ? '...' : '')
+        // Skip title update for testing - would normally update database
+        setCurrentSession(prev => prev ? { ...prev, title: newTitle } : null)
+        setSessions(prev => prev.map(s => 
+          s.id === sessionToUse.id ? { ...s, title: newTitle } : s
+        ))
+      }
 
-        // TODO: In Phase 4, this will call Claude API
-        // For now, just add a placeholder response
-        setTimeout(async () => {
-          const assistantMessage = await chatService.addMessage(
-            currentSession.id, 
-            'This is a placeholder response. Claude API integration will be added in Phase 4.',
-            'assistant'
-          )
-          if (assistantMessage) {
-            setMessages(prev => [...prev, assistantMessage])
+      // Create placeholder assistant message for streaming
+      const tempAssistantMessage: Message = {
+        id: `temp-assistant-${Date.now()}`,
+        content: '',
+        role: 'assistant',
+        timestamp: new Date(),
+        session_id: sessionToUse.id,
+        user_id: 'temp',
+        isStreaming: true
+      }
+      setMessages(prev => [...prev.slice(0, -1), tempUserMessage, tempAssistantMessage])
+
+      // Stream Claude API response
+      console.log('Starting to stream message to session:', sessionToUse.id)
+      let fullResponse = ''
+      try {
+        for await (const chunk of chatService.streamMessage(sessionToUse.id, content)) {
+          if (chunk.error) {
+            console.error('Streaming error:', chunk.error)
+            setStreamingMessage('Error: Failed to get response from Claude')
+            break
           }
-          setIsLoading(false)
-        }, 1000)
+          
+          if (!chunk.isComplete) {
+            fullResponse += chunk.content
+            setStreamingMessage(fullResponse)
+          } else {
+            // Streaming complete - save final message
+            console.log('Streaming completed, final response:', fullResponse)
+            
+            // Create final assistant message
+            const finalAssistantMessage: Message = {
+              id: `final-assistant-${Date.now()}`,
+              content: fullResponse,
+              role: 'assistant',
+              timestamp: new Date(),
+              session_id: sessionToUse.id,
+              user_id: 'temp'
+            }
+            
+            // Update messages: remove temp assistant message and add final one
+            setMessages(prev => {
+              const withoutTempAssistant = prev.slice(0, -1) // Remove temp assistant message
+              return [...withoutTempAssistant, finalAssistantMessage]
+            })
+            
+            setStreamingMessage('')
+            setIsLoading(false)
+            console.log('Final message saved to UI')
+            break
+          }
+        }
+      } catch (streamError) {
+        console.error('Error during streaming:', streamError)
+        setStreamingMessage('Error: Failed to get response from Claude')
+        setIsLoading(false)
+        // Remove temporary assistant message on error
+        setMessages(prev => prev.slice(0, -1))
       }
     } catch (error) {
       console.error('Error sending message:', error)
       setIsLoading(false)
+      setStreamingMessage('')
+      // Remove temporary messages on error
+      setMessages(prev => prev.slice(0, -2))
     }
   }
 
@@ -173,6 +247,7 @@ function DashboardPage() {
           messages={messages}
           onSendMessage={handleSendMessage}
           isLoading={isLoading}
+          streamingMessage={streamingMessage}
         />
       </div>
     </div>

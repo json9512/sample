@@ -1,11 +1,29 @@
+import { useState, useEffect } from 'react'
 import type { MessageItemProps } from '@/types/chat'
 
-export function MessageItem({ message, isLast }: MessageItemProps) {
+export function MessageItem({ message, isLast, isStreaming, streamingContent }: MessageItemProps) {
+  const [showCursor, setShowCursor] = useState(false)
   const isUser = message.role === 'user'
   const timestamp = new Date(message.timestamp).toLocaleTimeString([], { 
     hour: '2-digit', 
     minute: '2-digit' 
   })
+  
+  const displayContent = isStreaming && streamingContent ? streamingContent : message.content
+
+  // Blinking cursor effect for streaming messages
+  useEffect(() => {
+    if (!isStreaming) {
+      setShowCursor(false)
+      return
+    }
+
+    const interval = setInterval(() => {
+      setShowCursor(prev => !prev)
+    }, 500)
+
+    return () => clearInterval(interval)
+  }, [isStreaming])
 
   return (
     <div 
@@ -27,7 +45,7 @@ export function MessageItem({ message, isLast }: MessageItemProps) {
               {isUser ? 'You' : 'Claude'}
             </span>
             <span className="text-xs text-gray-500">
-              {timestamp}
+              {isStreaming ? 'typing...' : timestamp}
             </span>
           </div>
           
@@ -37,7 +55,15 @@ export function MessageItem({ message, isLast }: MessageItemProps) {
               : 'bg-gray-100 text-gray-900 rounded-bl-md'
           }`}>
             <div className="text-sm whitespace-pre-wrap break-words">
-              {message.content}
+              {displayContent}
+              {isStreaming && !isUser && (
+                <span
+                  className={`inline-block w-2 h-4 bg-gray-500 ml-1 ${
+                    showCursor ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{ transition: 'opacity 0.1s ease-in-out' }}
+                />
+              )}
             </div>
           </div>
         </div>

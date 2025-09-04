@@ -5,7 +5,7 @@ import { ChatInput } from './ChatInput'
 import { MessageItem } from './MessageItem'
 import type { ChatUIProps } from '@/types/chat'
 
-export function ChatUI({ session, messages, onSendMessage, isLoading }: ChatUIProps) {
+export function ChatUI({ session, messages, onSendMessage, isLoading, streamingMessage }: ChatUIProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -14,7 +14,7 @@ export function ChatUI({ session, messages, onSendMessage, isLoading }: ChatUIPr
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [messages, streamingMessage])
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -56,13 +56,22 @@ export function ChatUI({ session, messages, onSendMessage, isLoading }: ChatUIPr
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((message, index) => (
-                <MessageItem
-                  key={message.id}
-                  message={message}
-                  isLast={index === messages.length - 1}
-                />
-              ))}
+              {messages.map((message, index) => {
+                const isLastAssistantMessage = 
+                  index === messages.length - 1 && 
+                  message.role === 'assistant' && 
+                  isLoading
+                
+                return (
+                  <MessageItem
+                    key={message.id}
+                    message={message}
+                    isLast={index === messages.length - 1}
+                    isStreaming={isLastAssistantMessage}
+                    streamingContent={isLastAssistantMessage ? streamingMessage : undefined}
+                  />
+                )
+              })}
               <div ref={messagesEndRef} />
             </div>
           )}

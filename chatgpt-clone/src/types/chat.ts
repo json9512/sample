@@ -5,6 +5,7 @@ export interface Message {
   timestamp: Date
   session_id: string
   user_id: string
+  isStreaming?: boolean
 }
 
 export interface ChatSession {
@@ -21,11 +22,14 @@ export interface ChatUIProps {
   messages: Message[]
   onSendMessage: (content: string) => void
   isLoading: boolean
+  streamingMessage?: string
 }
 
 export interface MessageItemProps {
   message: Message
   isLast: boolean
+  isStreaming?: boolean
+  streamingContent?: string
 }
 
 export interface ChatInputProps {
