@@ -1,43 +1,57 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get('code')
-  const origin = requestUrl.origin
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get("code");
+  const next = requestUrl.searchParams.get("next") || "/dashboard";
 
   if (code) {
-    const cookieStore = await cookies()
+    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get: (name: string) => cookieStore.get(name)?.value,
-          set: (name: string, value: string, options: any) => {
-            cookieStore.set({ name, value, ...options })
+          getAll() {
+            return cookieStore.getAll();
           },
-          remove: (name: string, options: any) => {
-            cookieStore.set({ name, value: '', ...options })
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              });
+            } catch (error) {
+              console.error("Error setting cookies:", error);
+            }
           },
         },
       }
-    )
-    
+    );
+
     try {
-      const { error } = await supabase.auth.exchangeCodeForSession(code)
-      
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
       if (error) {
-        console.error('Error exchanging code for session:', error)
-        return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+        console.error("Error exchanging code for session:", error);
+        return NextResponse.redirect(
+          `${requestUrl.origin}/login?error=auth_failed`
+        );
+      }
+
+      if (data.session) {
+        console.log("Authentication successful:", data.session.user.email);
+        return NextResponse.redirect(`${requestUrl.origin}${next}`);
       }
     } catch (error) {
-      console.error('Error in auth callback:', error)
-      return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+      console.error("Unexpected error in auth callback:", error);
+      return NextResponse.redirect(
+        `${requestUrl.origin}/login?error=auth_failed`
+      );
     }
   }
 
-  // Redirect to dashboard after successful authentication
-  return NextResponse.redirect(`${origin}/dashboard`)
+  // No code parameter provided
+  return NextResponse.redirect(`${requestUrl.origin}/login`);
 }

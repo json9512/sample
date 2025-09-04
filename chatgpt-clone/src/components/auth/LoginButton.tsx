@@ -21,22 +21,32 @@ const LoginButton = ({
   const supabase = createSupabaseClient()
 
   const handleGoogleSignIn = async () => {
-    if (disabled) return
+    console.log('Google sign in button clicked')
+    
+    if (disabled) {
+      console.log('Button is disabled, returning')
+      return
+    }
 
     setIsLoading(true)
+    console.log('Starting Google sign in process')
     
     try {
       const { error } = await authHelpers.signInWithGoogle(supabase, redirectTo)
       
       if (error) {
+        console.error('Google sign in error:', error)
         onError?.(error)
       } else {
+        console.log('Google sign in successful')
         onSuccess?.()
       }
     } catch (error) {
+      console.error('Google sign in exception:', error)
       onError?.(error)
     } finally {
       setIsLoading(false)
+      console.log('Google sign in process completed')
     }
   }
 

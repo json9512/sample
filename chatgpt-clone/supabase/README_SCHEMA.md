@@ -16,29 +16,26 @@ interface DatabaseSchema {
 
 ## 테이블 구조
 
-### 1. users (사용자)
-Google OAuth 로그인을 지원하는 사용자 테이블입니다.
+### 1. auth.users (사용자 - Supabase 내장)
+Supabase의 내장 인증 시스템을 사용합니다. (별도 users 테이블 대신)
 
 ```sql
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email VARCHAR(255) NOT NULL UNIQUE,
-    name VARCHAR(255) NOT NULL,
-    avatar_url TEXT,
-    provider VARCHAR(50) DEFAULT 'google' NOT NULL,
-    provider_id VARCHAR(255),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    last_login TIMESTAMP WITH TIME ZONE,
-    is_active BOOLEAN DEFAULT true NOT NULL
+-- Supabase auth.users 테이블을 직접 참조
+-- 사용자 정의 테이블 대신 Supabase 내장 인증 시스템 활용
+auth.users (
+    id UUID PRIMARY KEY,
+    email VARCHAR,
+    raw_user_meta_data JSONB,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE
 );
 ```
 
 **주요 특징:**
-- UUID 기반 기본 키
-- 이메일 유효성 검증 제약조건
-- Google OAuth 지원을 위한 provider 필드
-- 자동 timestamp 관리
+- Supabase 자동 관리 인증 테이블
+- Google OAuth 내장 지원
+- JWT 토큰 자동 관리
+- 사용자 메타데이터 지원
 
 ### 2. chat_sessions (채팅 세션)
 사용자별 채팅 세션을 관리하는 테이블입니다.
@@ -46,7 +43,7 @@ CREATE TABLE users (
 ```sql
 CREATE TABLE chat_sessions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE ON UPDATE CASCADE,
     title VARCHAR(500) NOT NULL DEFAULT 'New Chat',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
@@ -56,7 +53,7 @@ CREATE TABLE chat_sessions (
 ```
 
 **주요 특징:**
-- users 테이블과 외래키 관계
+- auth.users 테이블과 외래키 관계
 - 자동 메시지 카운트 관리
 - 아카이브 기능 지원
 - CASCADE 삭제 정책
@@ -68,10 +65,12 @@ CREATE TABLE chat_sessions (
 CREATE TABLE messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE ON UPDATE CASCADE,
     role message_role NOT NULL,  -- 'user' | 'assistant'
     content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS (created_at) STORED,
     token_count INTEGER,
     metadata JSONB DEFAULT '{}' NOT NULL
 );
@@ -79,28 +78,28 @@ CREATE TABLE messages (
 
 **주요 특징:**
 - 커스텀 ENUM 타입 (message_role)
+- 이중 외래키 (session_id, user_id)로 보안 강화
+- timestamp 필드 (created_at의 별명)
 - JSONB 메타데이터 지원
 - 토큰 카운트 추적
-- 유연한 컨텐츠 저장
 
 ## 관계도 (Relationships)
 
 ```
-users (1) ──────< chat_sessions (1) ──────< messages (*)
-  │                    │                        │
-  └─ id               └─ user_id               └─ session_id
-                       └─ id                   
+auth.users (1) ──────< chat_sessions (1) ──────< messages (*)
+    │                       │                        │
+    └─ id                  └─ user_id               ├─ session_id
+                            └─ id                   └─ user_id (이중 참조)
 ```
 
 ## 인덱스 전략 (Indexing Strategy)
 
 ### 성능 최적화된 인덱스 설계
 
-#### users 테이블
+#### auth.users 테이블
 ```sql
-CREATE INDEX idx_users_email ON users(email);                    -- 로그인 조회
-CREATE INDEX idx_users_provider_id ON users(provider, provider_id); -- OAuth 조회
-CREATE INDEX idx_users_active ON users(is_active) WHERE is_active = true; -- 활성 사용자
+-- Supabase에서 자동으로 관리되는 인덱스 사용
+-- 별도 인덱스 생성 불필요
 ```
 
 #### chat_sessions 테이블
@@ -114,6 +113,9 @@ CREATE INDEX idx_chat_sessions_user_active ON chat_sessions(user_id, is_archived
 ```sql
 CREATE INDEX idx_messages_session_id ON messages(session_id);     -- 세션별 메시지
 CREATE INDEX idx_messages_session_created ON messages(session_id, created_at ASC); -- 시간순 메시지
+CREATE INDEX idx_messages_user_id ON messages(user_id);          -- 사용자별 메시지
+CREATE INDEX idx_messages_user_session ON messages(user_id, session_id); -- 복합 인덱스
+CREATE INDEX idx_messages_user_timestamp ON messages(user_id, created_at DESC); -- 사용자별 최신 메시지
 CREATE INDEX idx_messages_role ON messages(role);                -- 역할별 검색
 ```
 
@@ -124,35 +126,48 @@ CREATE INDEX idx_messages_role ON messages(role);                -- 역할별 �
 - Supabase auth.uid()를 기반으로 한 인증
 - 테이블별 세밀한 권한 제어
 
-### users 테이블 RLS
+### auth.users 테이블 RLS
 ```sql
--- 사용자는 자신의 프로필만 조회/수정 가능
-CREATE POLICY "Users can view own profile" ON users
-    FOR SELECT USING (auth.uid()::text = id::text);
-
-CREATE POLICY "Users can update own profile" ON users
-    FOR UPDATE USING (auth.uid()::text = id::text);
+-- Supabase에서 자동으로 관리되는 RLS 정책 사용
+-- 사용자는 기본적으로 자신의 정보만 접근 가능
 ```
 
 ### chat_sessions 테이블 RLS
 ```sql
 -- 사용자는 자신의 채팅 세션만 관리 가능
 CREATE POLICY "Users can view own chat sessions" ON chat_sessions
-    FOR SELECT USING (auth.uid()::text = user_id::text);
+    FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert own chat sessions" ON chat_sessions
-    FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own chat sessions" ON chat_sessions
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own chat sessions" ON chat_sessions
+    FOR DELETE USING (auth.uid() = user_id);
 ```
 
 ### messages 테이블 RLS
 ```sql
--- 사용자는 자신의 세션 메시지만 접근 가능
+-- 이중 보안: user_id 직접 확인 + 세션 소유권 확인
 CREATE POLICY "Users can view own messages" ON messages
     FOR SELECT USING (
-        EXISTS (
+        auth.uid() = user_id 
+        OR EXISTS (
             SELECT 1 FROM chat_sessions 
             WHERE chat_sessions.id = messages.session_id 
-            AND chat_sessions.user_id::text = auth.uid()::text
+            AND chat_sessions.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can insert own messages" ON messages
+    FOR INSERT WITH CHECK (
+        auth.uid() = user_id 
+        AND EXISTS (
+            SELECT 1 FROM chat_sessions 
+            WHERE chat_sessions.id = messages.session_id 
+            AND chat_sessions.user_id = auth.uid()
         )
     );
 ```
@@ -200,12 +215,16 @@ $$ LANGUAGE plpgsql;
 supabase/
 ├── migrations/
 │   ├── 001_initial_schema.sql
+│   ├── 002_align_with_supabase_auth.sql
 │   └── rollback/
-│       └── 001_rollback_initial_schema.sql
+│       ├── 001_rollback_initial_schema.sql
+│       └── 002_rollback_align_with_supabase_auth.sql
+├── types/
+│   └── database-schema.ts
 └── tests/
-    ├── schema_validation.sql
-    ├── rls_policy_tests.sql
-    └── performance_tests.sql
+    ├── schema-validation.sql
+    ├── rls-security-tests.sql
+    └── performance-analysis.sql
 ```
 
 ### 마이그레이션 실행

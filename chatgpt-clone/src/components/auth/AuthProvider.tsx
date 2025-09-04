@@ -71,7 +71,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const signOut = async () => {
-    await authHelpers.signOut(supabase)
+    try {
+      // Sign out from Supabase
+      await authHelpers.signOut(supabase)
+      
+      // Clear local state
+      setUser(null)
+      setSession(null)
+      
+      // Clear any remaining auth data
+      const { resetAuthState } = await import('@/lib/auth-reset')
+      await resetAuthState()
+      
+      console.log('Sign out successful')
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
   const value: AuthContextType = {

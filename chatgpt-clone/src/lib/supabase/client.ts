@@ -9,7 +9,15 @@ export function createSupabaseClient() {
   if (!supabaseClient) {
     supabaseClient = createBrowserClient<Database>(
       clientEnv.SUPABASE_URL,
-      clientEnv.SUPABASE_ANON_KEY
+      clientEnv.SUPABASE_ANON_KEY,
+      {
+        auth: {
+          flowType: 'pkce',
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true
+        }
+      }
     )
   }
   return supabaseClient
@@ -40,10 +48,16 @@ export type SupabaseClient = ReturnType<typeof createSupabaseClient>
 // Auth utility functions
 export const authHelpers = {
   signInWithGoogle: async (client: SupabaseClient, redirectTo?: string) => {
+    const finalRedirectTo = redirectTo || `${window.location.origin}/`
+    
     return await client.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+        redirectTo: finalRedirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     })
   },

@@ -30,7 +30,10 @@ export default function DashboardPage() {
               )}
               <Button
                 variant="secondary"
-                onClick={signOut}
+                onClick={() => {
+                  console.log('Profile Sign Out clicked')
+                  window.location.href = '/auth/logout'
+                }}
                 size="sm"
               >
                 Sign Out
@@ -41,17 +44,20 @@ export default function DashboardPage() {
           <div className="mt-8">
             <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
               <h3 className="text-lg font-medium text-blue-900">
-                ChatGPT Clone Dashboard
+                ChatGPT Clone
               </h3>
               <p className="mt-2 text-blue-700">
-                This is a placeholder dashboard. Soon you'll be able to:
+                Ready to start chatting with Claude AI!
               </p>
-              <ul className="mt-2 text-sm text-blue-600 list-disc list-inside space-y-1">
-                <li>Start new chat sessions with Claude AI</li>
-                <li>View and manage your chat history</li>
-                <li>Organize conversations into folders</li>
-                <li>Export your conversations</li>
-              </ul>
+              <div className="mt-4">
+                <Button
+                  variant="primary"
+                  onClick={() => window.location.href = '/dashboard'}
+                  size="md"
+                >
+                  Start Chatting
+                </Button>
+              </div>
             </div>
           </div>
           
