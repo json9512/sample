@@ -7,15 +7,24 @@ export let supabaseClient: ReturnType<typeof createBrowserClient<Database>> | nu
 
 export function createSupabaseClient() {
   if (!supabaseClient) {
+    console.log('Creating Supabase client with URL:', clientEnv.SUPABASE_URL)
     supabaseClient = createBrowserClient<Database>(
       clientEnv.SUPABASE_URL,
       clientEnv.SUPABASE_ANON_KEY,
       {
         auth: {
           flowType: 'pkce',
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true
+          autoRefreshToken: false,
+          persistSession: false,
+          detectSessionInUrl: false
+        },
+        db: {
+          schema: 'public'
+        },
+        global: {
+          headers: {
+            'x-client-info': 'supabase-js-web'
+          }
         }
       }
     )

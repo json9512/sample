@@ -57,18 +57,15 @@ export function ChatUI({ session, messages, onSendMessage, isLoading, streamingM
           ) : (
             <div className="space-y-4">
               {messages.map((message, index) => {
-                const isLastAssistantMessage = 
-                  index === messages.length - 1 && 
-                  message.role === 'assistant' && 
-                  isLoading
+                const isStreamingMessage = message.isStreaming === true
                 
                 return (
                   <MessageItem
                     key={message.id}
                     message={message}
                     isLast={index === messages.length - 1}
-                    isStreaming={isLastAssistantMessage}
-                    streamingContent={isLastAssistantMessage ? streamingMessage : undefined}
+                    isStreaming={isStreamingMessage}
+                    streamingContent={isStreamingMessage ? streamingMessage : undefined}
                   />
                 )
               })}
